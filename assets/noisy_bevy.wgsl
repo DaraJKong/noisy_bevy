@@ -51,6 +51,11 @@ fn simplex_noise_2d(v: vec2<f32>) -> f32 {
     return 130. * dot(m, g);
 }
 
+// The normalized version of 2d simplex noise
+fn simplex_noise_2d_norm(v: vec2<f32>) -> f32 {
+    return (simplex_noise_2d(v) + 1) * 0.5;
+}
+
 fn simplex_noise_2d_seeded(v: vec2<f32>, seed: f32) -> f32 {
     let C = vec4(
         0.211324865405187, // (3.0 - sqrt(3.0)) / 6.0
@@ -90,6 +95,11 @@ fn simplex_noise_2d_seeded(v: vec2<f32>, seed: f32) -> f32 {
     // compute final noise value at P
     let g = vec3(a0.x * x0.x + h.x * x0.y, a0.yz * x12.xz + h.yz * x12.yw);
     return 130. * dot(m, g);
+}
+
+// The normalized version of seeded 2d simplex noise
+fn simplex_noise_2d_norm_seeded(v: vec2<f32>, seed: f32) -> f32 {
+    return (simplex_noise_2d_seeded(v, seed) + 1) * 0.5;
 }
 
 fn permute_4_(x: vec4<f32>) -> vec4<f32> {
@@ -241,6 +251,12 @@ fn simplex_noise_3d_seeded(v: vec3<f32>, seed: vec3<f32>) -> f32 {
 
 // higher level concepts:
 
+// Calculates the relative fbm output range based on octaves and gain.
+// See the Rust function `noisy_bevy::fbm_range` for more info.
+fn fbm_range(octaves: i32, gain: f32) -> f32 {
+    return (1 - pow(gain, f32(octaves) + 1)) / (1 - gain);
+}
+
 /// Fractional brownian motion (fbm) based on 2d simplex noise
 fn fbm_simplex_2d(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
     var sum = 0.;
@@ -256,6 +272,12 @@ fn fbm_simplex_2d(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f
     return sum;
 }
 
+// The normalized version of fractional brownian motion (fbm)
+fn fbm_simplex_2d_norm(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
+    let range = fbm_range(octaves, gain);
+    return (fbm_simplex_2d(pos, octaves, lacunarity, gain) + range) / range * 0.5;
+}
+
 /// Fractional brownian motion (fbm) based on seeded 2d simplex noise
 fn fbm_simplex_2d_seeded(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32, seed: f32) -> f32 {
     var sum = 0.;
@@ -269,6 +291,12 @@ fn fbm_simplex_2d_seeded(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f3
     }
 
     return sum;
+}
+
+// The normalized version of seeded fractional brownian motion (fbm)
+fn fbm_simplex_2d_norm_seeded(pos: vec2<f32>, octaves: i32, lacunarity: f32, gain: f32, seed: f32) -> f32 {
+    let range = fbm_range(octaves, gain);
+    return (fbm_simplex_2d_seeded(pos, octaves, lacunarity, gain, seed) + range) / range * 0.5;
 }
 
 const max_warp_iterations = 4; // Warping has diminishing returns due to the falloff param, so we don't need many iterations. Faloff makes it look more natural.

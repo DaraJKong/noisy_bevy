@@ -48,6 +48,11 @@ pub fn simplex_noise_2d(v: Vec2) -> f32 {
     130. * Vec3::dot(m, g)
 }
 
+/// The normalized version of `simplex_noise_2d` with an output range of `0.0..1.0`
+pub fn simplex_noise_2d_norm(v: Vec2) -> f32 {
+    (simplex_noise_2d(v) + 1.) * 0.5
+}
+
 // MIT License. © Ian McEwan, Stefan Gustavson, Munrocket, Johan Helsing
 /// Simplex noise in two dimensions
 pub fn simplex_noise_2d_seeded(v: Vec2, seed: f32) -> f32 {
@@ -105,6 +110,11 @@ pub fn simplex_noise_2d_seeded(v: Vec2, seed: f32) -> f32 {
 
     // compute final noise value at P
     130. * Vec3::dot(m, g)
+}
+
+/// The normalized version of `simplex_noise_2d_seeded` with an output range of `0.0..1.0`
+pub fn simplex_noise_2d_norm_seeded(v: Vec2, seed: f32) -> f32 {
+    (simplex_noise_2d_seeded(v, seed) + 1.) * 0.5
 }
 
 fn permute_4(x: Vec4) -> Vec4 {
@@ -313,6 +323,17 @@ pub fn simplex_noise_3d_seeded(v: Vec3, seed: Vec3) -> f32 {
     )
 }
 
+/// Calculates the relative fbm output range based on octaves and gain.
+/// - The calculated range is relative, multiply the output of this function
+///   with the basic noise range to get the true range.
+/// - To get the range of `fbm_simplex_2d` and its variants, multiply this
+///   by the range `-1.0..1.0`.
+fn fbm_range(octaves: usize, gain: f32) -> f32 {
+    // Finite geometric series optimization (https://en.wikipedia.org/wiki/Geometric_series)
+    // The first octave has an amplitude of gain ^ 0, so the series goes from gain ^ 0 to gain ^ octaves.
+    (1. - gain.powi(octaves as i32 + 1)) / (1. - gain)
+}
+
 /// Fractional brownian motion (fbm) based on 2d simplex noise
 pub fn fbm_simplex_2d(pos: Vec2, octaves: usize, lacunarity: f32, gain: f32) -> f32 {
     let mut sum = 0.;
@@ -326,6 +347,12 @@ pub fn fbm_simplex_2d(pos: Vec2, octaves: usize, lacunarity: f32, gain: f32) -> 
     }
 
     sum
+}
+
+/// The normalized version of `fbm_simplex_2d` with an output range of `0.0..1.0`
+pub fn fbm_simplex_2d_norm(pos: Vec2, octaves: usize, lacunarity: f32, gain: f32) -> f32 {
+    let range = fbm_range(octaves, gain);
+    (fbm_simplex_2d(pos, octaves, lacunarity, gain) + range) / range * 0.5
 }
 
 /// Fractional brownian motion (fbm) based on seeded 2d simplex noise
@@ -347,6 +374,18 @@ pub fn fbm_simplex_2d_seeded(
     }
 
     sum
+}
+
+/// The normalized version of `fbm_simplex_2d_seeded` with an output range of `0.0..1.0`
+pub fn fbm_simplex_2d_norm_seeded(
+    pos: Vec2,
+    octaves: usize,
+    lacunarity: f32,
+    gain: f32,
+    seed: f32,
+) -> f32 {
+    let range = fbm_range(octaves, gain);
+    (fbm_simplex_2d_seeded(pos, octaves, lacunarity, gain, seed) + range) / range * 0.5
 }
 
 const MAX_WARP_ITERATIONS: usize = 4;
